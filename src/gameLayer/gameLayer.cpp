@@ -10,12 +10,15 @@
 // #include "imfilebrowser.h"
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
-#include <tiledRenderer.h>
+// #include <tiledRenderer.h>
 #include <bullet.h>
 #include <vector>
 #include <enemy.h>
 #include <glui/glui.h>
 #include <raudio.h>
+// Levels
+#include <levels/baseLevel.h>
+#include <levels/level1.h>
 
 struct GameplayData
 {
@@ -25,6 +28,8 @@ struct GameplayData
 
 	float health = 1.f; // player's health goes from 1.0 -> 0.0
 	float spawnEnemyTimerSeconds = 3;
+
+	int currentLevel = 0;
 };
 
 GameplayData data;
@@ -34,6 +39,9 @@ gl2d::Renderer2D renderer;
 constexpr int BACKGROUNDS = 3;
 constexpr float SHIP_SIZE = 250.f;
 
+// Levels
+// BaseLevel levels[1];
+Level1 level1;
 
 gl2d::Texture spaceShipsTexture;
 gl2d::TextureAtlasPadding spaceShipsAtlas;
@@ -41,8 +49,8 @@ gl2d::TextureAtlasPadding spaceShipsAtlas;
 gl2d::Texture bulletsTexture;
 gl2d::TextureAtlasPadding bulletsAtlas;
 
-gl2d::Texture backgroundTexture[BACKGROUNDS];
-TiledRenderer tiledRenderer[BACKGROUNDS];
+// gl2d::Texture backgroundTexture[BACKGROUNDS];
+// TiledRenderer tiledRenderer[BACKGROUNDS];
 
 gl2d::Texture healthBarTexture;
 gl2d::Texture healthTexture;
@@ -84,6 +92,10 @@ bool static intersectBullet(glm::vec2 bulletPos, glm::vec2 shipPos, float shipSi
 // static in this case means that if you were to import this file somewhere,
 // you wouldn't be able to call restartGame() function since it's only "visible" in this file
 void static restartGame() {
+	// for (int i = 0; i < sizeof(levels) / sizeof(levels[0]); ++i) {
+	// 	delete levels[i];
+	// }
+
 	data = {};
 	// reset player camera
 	renderer.currentCamera.follow(data.playerPos, 550, 0, 0, renderer.windowW, renderer.windowH);
@@ -95,36 +107,49 @@ bool initGame()
 	gl2d::init();
 	renderer.create();
 
+	// load sounds
+	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
+	SetSoundVolume(shootSound, 0.5);
+
+	// load UI textures
+	healthBarTexture.loadFromFile(RESOURCES_PATH "healthBar.png", true);
+	healthTexture.loadFromFile(RESOURCES_PATH "health.png", true);
+
+	// load spaceships and bullet textures
+	spaceShipsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
+	spaceShipsAtlas = gl2d::TextureAtlasPadding(5, 2, spaceShipsTexture.GetSize().x, spaceShipsTexture.GetSize().y);
+	bulletsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/projectiles.png", 500, true);
+	bulletsAtlas = gl2d::TextureAtlasPadding(5, 2, bulletsTexture.GetSize().x, bulletsTexture.GetSize().y);
+
 	// true parameter tells the GPU that we want the texture pixelated
 	// spaceShipTexture.loadFromFile(RESOURCES_PATH "spaceShip/ships/green.png", true);
 
 	// You can render using texture atlas with both ways, but the default render method has a problem;
-	// neighbour tiles can leak which leads to visual artefacts like "extra piece of texture" you don't want to have
+	// neighbour tiles can leak which leads to visual artifacts like "extra piece of texture" you don't want to have
 	// This custom method adds one pixel padding around each tile
 	// Difference is that you need to specify the size of one tile in pixels, 128 in this case (currently works only for square sized tiles)
-	spaceShipsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
-	spaceShipsAtlas = gl2d::TextureAtlasPadding(5, 2, spaceShipsTexture.GetSize().x, spaceShipsTexture.GetSize().y);
+	// spaceShipsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
 
-	bulletsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/projectiles.png", 500, true);
-	bulletsAtlas = gl2d::TextureAtlasPadding(5, 2, bulletsTexture.GetSize().x, bulletsTexture.GetSize().y);
+	// TODO: move level textures to a separate Level1 class and inherit from BaseLevel class
+	// * think about passing or not passing renderer to the level class
+	// backgroundTexture[0].loadFromFile(RESOURCES_PATH "background1.png", true);
+	// backgroundTexture[1].loadFromFile(RESOURCES_PATH "background2.png", true);
+	// backgroundTexture[2].loadFromFile(RESOURCES_PATH "background3.png", true);
 
-	healthBarTexture.loadFromFile(RESOURCES_PATH "healthBar.png", true);
-	healthTexture.loadFromFile(RESOURCES_PATH "health.png", true);
+	// tiledRenderer[0].texture = backgroundTexture[0];
+	// tiledRenderer[1].texture = backgroundTexture[1];
+	// tiledRenderer[2].texture = backgroundTexture[2];
 
-	shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
-	SetSoundVolume(shootSound, 0.5);
+	// tiledRenderer[0].parallaxStrength = 0;
+	// tiledRenderer[1].parallaxStrength = 0.5;
+	// tiledRenderer[2].parallaxStrength = 0.7;
 
-	backgroundTexture[0].loadFromFile(RESOURCES_PATH "background1.png", true);
-	backgroundTexture[1].loadFromFile(RESOURCES_PATH "background2.png", true);
-	backgroundTexture[2].loadFromFile(RESOURCES_PATH "background3.png", true);
+	// levels[0] = new Level1();
+	// if (levels[data.currentLevel] != nullptr) {
+	// 	levels[data.currentLevel]->loadBackgroundTextures();
+	// }
 
-	tiledRenderer[0].texture = backgroundTexture[0];
-	tiledRenderer[1].texture = backgroundTexture[1];
-	tiledRenderer[2].texture = backgroundTexture[2];
-
-	tiledRenderer[0].parallaxStrength = 0;
-	tiledRenderer[1].parallaxStrength = 0.5;
-	tiledRenderer[2].parallaxStrength = 0.7;
+	level1.loadBackgroundTextures();
 
 	restartGame(); // called here just to make sure that everything is configured the same
 
@@ -183,9 +208,14 @@ bool gameLogic(float deltaTime)
 
 	renderer.currentCamera.zoom = 0.2;
 
-	for (int i = 0; i < BACKGROUNDS; i++) {
-		tiledRenderer[i].render(renderer);
-	}
+	// if (levels[data.currentLevel] != nullptr) {
+	// 	levels[data.currentLevel]->renderLevel(renderer);
+	// }
+	level1.renderLevel(renderer);
+
+	// for (int i = 0; i < BACKGROUNDS; i++) {
+	// 	tiledRenderer[i].render(renderer);
+	// }
 
 
 #pragma endregion
@@ -199,8 +229,7 @@ bool gameLogic(float deltaTime)
 
 	if (glm::length(mouseDirection) == 0.f) {
 		mouseDirection = { 1, 0 };
-	}
-	else {
+	} else {
 		mouseDirection = normalize(mouseDirection);
 	}
 
@@ -256,8 +285,7 @@ bool gameLogic(float deltaTime)
 				continue;
 			}
 
-		}
-		else {
+		} else {
 			if (intersectBullet(data.bullets[i].position, data.playerPos, SHIP_SIZE)) {
 				data.health -= 0.1;
 
@@ -274,8 +302,7 @@ bool gameLogic(float deltaTime)
 	if (data.health <= 0) {
 		// kill player
 		restartGame();
-	}
-	else {
+	} else {
 		data.health += deltaTime * 0.01;
 		data.health = glm::clamp(data.health, 0.f, 1.f);
 	}
@@ -412,7 +439,7 @@ bool gameLogic(float deltaTime)
 //This function might not be be called if the program is forced closed
 void closeGame()
 {
-
-
-
+	// for (int i = 0; i < sizeof(levels) / sizeof(levels[0]); ++i) {
+	// 	delete levels[i];
+	// }
 }

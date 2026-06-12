@@ -2,7 +2,7 @@
 
 void TiledRenderer::render(gl2d::Renderer2D& renderer) {
 
-	auto viewRect = renderer.getViewRect(); // this allows us to see what we can see
+	glm::vec4 viewRect = renderer.getViewRect(); // this allows us to see what we can see
 
 	glm::vec2 parallaxDistance = { viewRect.x, viewRect.y };
 	parallaxDistance *= -parallaxStrength;
@@ -12,7 +12,7 @@ void TiledRenderer::render(gl2d::Renderer2D& renderer) {
 			int posX = x + int((viewRect.x - parallaxDistance.x) / backgroundSize);
 			int posY = y + int((viewRect.y - parallaxDistance.y) / backgroundSize);
 
-			renderer.renderRectangle(glm::vec4{ posX, posY, 1, 1 } * backgroundSize + glm::vec4(parallaxDistance, 0, 0), texture);
+			renderer.renderRectangle(glm::vec4{ posX, posY, 1, 1 } *backgroundSize + glm::vec4(parallaxDistance, 0, 0), texture);
 		}
 	}
 }
@@ -31,7 +31,7 @@ void renderSpaceShip(
 	// first two 100s are the coordinates in pixels and they start the top left corner of the screen
 	// last two 100s are the size of the object we're drawing
 	renderer.renderRectangle(
-		{ position - glm::vec2(size / 2, size / 2), size, size},
+		{ position - glm::vec2(size / 2, size / 2), size, size },
 		texture,
 		Colors_White,
 		{},
