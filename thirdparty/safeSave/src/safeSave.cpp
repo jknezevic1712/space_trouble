@@ -13,7 +13,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#elif defined __linux__
+#elif defined __linux__ || defined __APPLE__
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -353,7 +353,7 @@ namespace sfs
 		fileMapping = {};
 	}
 
-#elif defined __linux__
+#elif defined __linux__ || defined __APPLE__
 
 	Errors openFileMapping(FileMapping& fileMapping, const char* name, size_t size, bool createIfNotExisting)
 	{

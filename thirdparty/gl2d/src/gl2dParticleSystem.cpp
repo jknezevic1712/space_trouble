@@ -50,7 +50,7 @@ namespace gl2d
 			
 			void main()
 			{
-				color = v_color * texture2D(u_sampler, v_texture);
+				color = v_color * texture(u_sampler, v_texture);
 				
 				if(color.a <0.01)discard;
 				//color.a = 1.f;
@@ -226,7 +226,9 @@ void ParticleSystem::applyMovement(float deltaTime)
 
 	}
 
+#if GL2D_SIMD != 0
 	__m128 _deltaTime = _mm_set1_ps(deltaTime);
+#endif
 
 #pragma region applyDrag
 

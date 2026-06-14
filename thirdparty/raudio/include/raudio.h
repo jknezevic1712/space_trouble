@@ -79,10 +79,12 @@
 //----------------------------------------------------------------------------------
 #ifndef __cplusplus
 // Boolean type
-    #if !defined(_STDBOOL_H)
-        typedef enum { false, true } bool;
-        #define _STDBOOL_H
-    #endif
+    // Use the real <stdbool.h> rather than a hand-rolled enum. The previous
+    // `typedef enum { false, true } bool;` was guarded by _STDBOOL_H, but modern
+    // libc's <stdbool.h> uses the guard __STDBOOL_H, so a later include of the
+    // system header (via miniaudio) would redefine bool to _Bool and clash with
+    // these declarations ("conflicting types"). Including it here keeps bool == _Bool everywhere.
+    #include <stdbool.h>
 #endif
 
 // Wave type, defines audio wave data

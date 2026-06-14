@@ -71,8 +71,9 @@ namespace sfs
 		}internal = {};
 	};
 
-#elif defined __linux__
+#elif defined __linux__ || defined __APPLE__
 
+	// macOS shares the POSIX (mmap/open/ftruncate) path with Linux.
 	struct FileMapping
 	{
 		void* pointer = {};
