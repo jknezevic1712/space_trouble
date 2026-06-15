@@ -16,9 +16,11 @@
 #include <enemy.h>
 #include <glui/glui.h>
 #include <raudio.h>
+#include <memory>
 // Levels
 #include <levels/baseLevel.h>
 #include <levels/level1.h>
+#include <levels/level2.h>
 
 struct GameplayData
 {
@@ -41,7 +43,11 @@ constexpr float SHIP_SIZE = 250.f;
 
 // Levels
 // BaseLevel levels[1];
-Level1 level1;
+// Level1 level1;
+// Only one level lives in memory at a time. unique_ptr<BaseLevel> owns whichever
+// concrete level is active; reassigning it destroys the previous one automatically.
+std::unique_ptr<BaseLevel> currentLevel;
+
 
 gl2d::Texture spaceShipsTexture;
 gl2d::TextureAtlasPadding spaceShipsAtlas;
@@ -84,8 +90,25 @@ void static spawnEnemy() {
 }
 
 bool static intersectBullet(glm::vec2 bulletPos, glm::vec2 shipPos, float shipSize) {
-    // has the bullet hit the ship 
+    // has the bullet hit the ship
     return glm::distance(bulletPos, shipPos) <= shipSize;
+}
+
+// switches the active level: frees the old level's GPU textures, instantiates the
+// requested one, and loads its backgrounds. An unknown index falls back to Level1
+// so currentLevel is never left null (the render path dereferences it).
+void static loadLevel(int index) {
+    if (currentLevel) {
+        currentLevel->unload();
+    }
+
+    switch (index) {
+        case 1:  currentLevel = std::make_unique<Level2>(); break;
+        default: currentLevel = std::make_unique<Level1>(); break;
+    }
+
+    data.currentLevel = index;
+    currentLevel->loadBackgroundTextures();
 }
 
 // static in this case means that if you were to import this file somewhere,
@@ -129,7 +152,7 @@ bool initGame()
     // Difference is that you need to specify the size of one tile in pixels, 128 in this case (currently works only for square sized tiles)
     // spaceShipsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
 
-    // TODO: move level textures to a separate Level1 class and inherit from BaseLevel class
+    // DONE: level textures now live in Level1/Level2 classes inheriting from BaseLevel; loaded via loadLevel() below
     // * think about passing or not passing renderer to the level class
     // backgroundTexture[0].loadFromFile(RESOURCES_PATH "background1.png", true);
     // backgroundTexture[1].loadFromFile(RESOURCES_PATH "background2.png", true);
@@ -148,7 +171,7 @@ bool initGame()
     // 	levels[data.currentLevel]->loadBackgroundTextures();
     // }
 
-    level1.loadBackgroundTextures();
+    loadLevel(0);
 
     restartGame(); // called here just to make sure that everything is configured the same
 
@@ -210,7 +233,9 @@ bool gameLogic(float deltaTime)
     // if (levels[data.currentLevel] != nullptr) {
     // 	levels[data.currentLevel]->renderLevel(renderer);
     // }
-    level1.renderLevel(renderer);
+    if (currentLevel) {
+        currentLevel->renderLevel(renderer);
+    }
 
     // for (int i = 0; i < BACKGROUNDS; i++) {
     // 	tiledRenderer[i].render(renderer);
@@ -441,4 +466,11 @@ void closeGame()
     // for (int i = 0; i < sizeof(levels) / sizeof(levels[0]); ++i) {
     // 	delete levels[i];
     // }
+
+    // explicitly free the active level's GPU textures before the renderer is destroyed,
+    // then release the level itself (unique_ptr would free it anyway, but order matters here).
+    if (currentLevel) {
+        currentLevel->unload();
+        currentLevel.reset();
+    }
 }

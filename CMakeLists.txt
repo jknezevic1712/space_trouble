@@ -3,6 +3,10 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+#vendored thirdparty libs (glfw, raudio, glm, etc.) declare cmake_minimum_required < 3.5,
+#which CMake 4.x rejects. This lets those sub-builds configure without editing vendored files.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 
 #set this to true to ship the game!
 #! ! ! ! ! ! !

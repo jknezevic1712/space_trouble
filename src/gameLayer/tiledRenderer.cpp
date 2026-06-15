@@ -2,40 +2,41 @@
 
 void TiledRenderer::render(gl2d::Renderer2D& renderer) {
 
-	glm::vec4 viewRect = renderer.getViewRect(); // this allows us to see what we can see
+    glm::vec4 viewRect = renderer.getViewRect(); // this allows us to see what we can see
 
-	glm::vec2 parallaxDistance = { viewRect.x, viewRect.y };
-	parallaxDistance *= -parallaxStrength;
 
-	for (int y = -1; y <= 1; y++) {
-		for (int x = -1; x <= 1; x++) {
-			int posX = x + int((viewRect.x - parallaxDistance.x) / backgroundSize);
-			int posY = y + int((viewRect.y - parallaxDistance.y) / backgroundSize);
+    glm::vec2 parallaxDistance = { viewRect.x, viewRect.y };
+    parallaxDistance *= -parallaxStrength;
 
-			renderer.renderRectangle(glm::vec4{ posX, posY, 1, 1 } *backgroundSize + glm::vec4(parallaxDistance, 0, 0), texture);
-		}
-	}
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            int posX = x + int((viewRect.x - parallaxDistance.x) / backgroundSize);
+            int posY = y + int((viewRect.y - parallaxDistance.y) / backgroundSize);
+
+            renderer.renderRectangle(glm::vec4{ posX, posY, 1, 1 } * backgroundSize + glm::vec4(parallaxDistance, 0, 0), texture);
+        }
+    }
 }
 
 void renderSpaceShip(
-	gl2d::Renderer2D& renderer,
-	glm::vec2 position,
-	float size,
-	gl2d::Texture texture,
-	glm::vec4 uvs,
-	glm::vec2 viewDirection
+    gl2d::Renderer2D& renderer,
+    glm::vec2 position,
+    float size,
+    gl2d::Texture texture,
+    glm::vec4 uvs,
+    glm::vec2 viewDirection
 ) {
-	float spaceShipAngle = atan2(viewDirection.y, -viewDirection.x);
+    float spaceShipAngle = atan2(viewDirection.y, -viewDirection.x);
 
-	// first parameter is vec4 and it specifies where to draw the object
-	// first two 100s are the coordinates in pixels and they start the top left corner of the screen
-	// last two 100s are the size of the object we're drawing
-	renderer.renderRectangle(
-		{ position - glm::vec2(size / 2, size / 2), size, size },
-		texture,
-		Colors_White,
-		{},
-		glm::degrees(spaceShipAngle) + 90.f,
-		uvs
-	);
+    // first parameter is vec4 and it specifies where to draw the object
+    // first two 100s are the coordinates in pixels and they start the top left corner of the screen
+    // last two 100s are the size of the object we're drawing
+    renderer.renderRectangle(
+        { position - glm::vec2(size / 2, size / 2), size, size },
+        texture,
+        Colors_White,
+        {},
+        glm::degrees(spaceShipAngle) + 90.f,
+        uvs
+    );
 }
