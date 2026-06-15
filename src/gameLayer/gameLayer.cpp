@@ -41,13 +41,9 @@ gl2d::Renderer2D renderer;
 constexpr int BACKGROUNDS = 3;
 constexpr float SHIP_SIZE = 250.f;
 
-// Levels
-// BaseLevel levels[1];
-// Level1 level1;
 // Only one level lives in memory at a time. unique_ptr<BaseLevel> owns whichever
 // concrete level is active; reassigning it destroys the previous one automatically.
 std::unique_ptr<BaseLevel> currentLevel;
-
 
 gl2d::Texture spaceShipsTexture;
 gl2d::TextureAtlasPadding spaceShipsAtlas;
@@ -55,13 +51,11 @@ gl2d::TextureAtlasPadding spaceShipsAtlas;
 gl2d::Texture bulletsTexture;
 gl2d::TextureAtlasPadding bulletsAtlas;
 
-// gl2d::Texture backgroundTexture[BACKGROUNDS];
-// TiledRenderer tiledRenderer[BACKGROUNDS];
-
 gl2d::Texture healthBarTexture;
 gl2d::Texture healthTexture;
 
-Sound shootSound;
+Sound playerShootSound;
+Sound enemyShootSound;
 
 void static spawnEnemy() {
     glm::uvec2 shipTypes[] = { {0, 0}, {0, 1}, {2, 0}, {3, 1} };
@@ -103,8 +97,8 @@ void static loadLevel(int index) {
     }
 
     switch (index) {
-        case 1:  currentLevel = std::make_unique<Level2>(); break;
-        default: currentLevel = std::make_unique<Level1>(); break;
+    case 1:  currentLevel = std::make_unique<Level2>(); break;
+    default: currentLevel = std::make_unique<Level1>(); break;
     }
 
     data.currentLevel = index;
@@ -114,10 +108,6 @@ void static loadLevel(int index) {
 // static in this case means that if you were to import this file somewhere,
 // you wouldn't be able to call restartGame() function since it's only "visible" in this file
 void static restartGame() {
-    // for (int i = 0; i < sizeof(levels) / sizeof(levels[0]); ++i) {
-    // 	delete levels[i];
-    // }
-
     data = {};
     // reset player camera
     renderer.currentCamera.follow(data.playerPos, 550, 0, 0, renderer.windowW, renderer.windowH);
@@ -130,8 +120,10 @@ bool initGame()
     renderer.create();
 
     // load sounds
-    shootSound = LoadSound(RESOURCES_PATH "shoot.flac");
-    SetSoundVolume(shootSound, 0.5);
+    playerShootSound = LoadSound(RESOURCES_PATH "sounds/shoot_1.flac");
+    enemyShootSound = LoadSound(RESOURCES_PATH "sounds/shoot_2.wav");
+    SetSoundVolume(playerShootSound, 1);
+    SetSoundVolume(enemyShootSound, 1);
 
     // load UI textures
     healthBarTexture.loadFromFile(RESOURCES_PATH "healthBar.png", true);
@@ -151,25 +143,6 @@ bool initGame()
     // This custom method adds one pixel padding around each tile
     // Difference is that you need to specify the size of one tile in pixels, 128 in this case (currently works only for square sized tiles)
     // spaceShipsTexture.loadFromFileWithPixelPadding(RESOURCES_PATH "spaceShip/stitchedFiles/spaceships.png", 128, true);
-
-    // DONE: level textures now live in Level1/Level2 classes inheriting from BaseLevel; loaded via loadLevel() below
-    // * think about passing or not passing renderer to the level class
-    // backgroundTexture[0].loadFromFile(RESOURCES_PATH "background1.png", true);
-    // backgroundTexture[1].loadFromFile(RESOURCES_PATH "background2.png", true);
-    // backgroundTexture[2].loadFromFile(RESOURCES_PATH "background3.png", true);
-
-    // tiledRenderer[0].texture = backgroundTexture[0];
-    // tiledRenderer[1].texture = backgroundTexture[1];
-    // tiledRenderer[2].texture = backgroundTexture[2];
-
-    // tiledRenderer[0].parallaxStrength = 0;
-    // tiledRenderer[1].parallaxStrength = 0.5;
-    // tiledRenderer[2].parallaxStrength = 0.7;
-
-    // levels[0] = new Level1();
-    // if (levels[data.currentLevel] != nullptr) {
-    // 	levels[data.currentLevel]->loadBackgroundTextures();
-    // }
 
     loadLevel(0);
 
@@ -271,7 +244,7 @@ bool gameLogic(float deltaTime)
 
         data.bullets.push_back(bullet);
 
-        PlaySound(shootSound);
+        PlaySound(playerShootSound);
     }
 
     for (int i = 0; i < data.bullets.size(); i++) {
@@ -368,7 +341,8 @@ bool gameLogic(float deltaTime)
 
             data.bullets.push_back(bullet);
 
-            // if (!IsSoundPlaying(shootSound)) PlaySound(shootSound); // enable enemy firing sounds
+            if (!IsSoundPlaying(playerShootSound)) PlaySound(enemyShootSound); // enable enemy firing sounds
+            // PlaySound(enemyShootSound);
         }
     }
 
@@ -463,10 +437,6 @@ bool gameLogic(float deltaTime)
 //This function might not be be called if the program is forced closed
 void closeGame()
 {
-    // for (int i = 0; i < sizeof(levels) / sizeof(levels[0]); ++i) {
-    // 	delete levels[i];
-    // }
-
     // explicitly free the active level's GPU textures before the renderer is destroyed,
     // then release the level itself (unique_ptr would free it anyway, but order matters here).
     if (currentLevel) {
