@@ -6,3 +6,7 @@ build/
 CMakeSettings.json
 Makefile
 /.vscode
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

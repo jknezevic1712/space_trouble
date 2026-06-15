@@ -1840,7 +1840,7 @@ namespace gl2d
 
 		createFromBuffer((const char*)decodedImage, width, height, pixelated, useMipMaps);
 
-		STBI_FREE(decodedImage);
+		stbi_image_free((void*)decodedImage); // stb_image v2.30+ no longer leaks the internal STBI_FREE macro to header-only users; use the public free fn
 	}
 
 	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize,
@@ -1982,7 +1982,7 @@ namespace gl2d
 
 		createFromBuffer((const char*)newData, newW, newH, pixelated, useMipMaps);
 
-		STBI_FREE(decodedImage);
+		stbi_image_free((void*)decodedImage); // stb_image v2.30+ no longer leaks the internal STBI_FREE macro to header-only users; use the public free fn
 		delete[] newData;
 	}
 
